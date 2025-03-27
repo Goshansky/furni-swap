@@ -1,0 +1,30 @@
+.container {
+    min-height: 100vh;
+    background-color: #f9fafb;
+    font-family: sans-serif;
+}
+
+.section {
+    padding: 24px;
+}
+
+.title {
+    font-size: 1.875rem;
+    font-weight: bold;
+    margin-bottom: 24px;
+    text-align: center;
+    color: #333;
+}
+
+.products {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    padding: 26px 16px;
+    scrollbar-width: none; /* Firefox */
+    justify-content: space-around;
+}
+
+.products::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+}
