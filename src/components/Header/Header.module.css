@@ -42,3 +42,8 @@
     background-color: #a9d8f3;
     transform: scale(1.05);
 }
+
+.logoImage {
+    height: 50px; /* Регулируй размер по необходимости */
+    border-radius: 50%;
+}
