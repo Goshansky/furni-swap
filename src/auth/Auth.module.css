@@ -1,0 +1,101 @@
+.authContainer {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #a8c0ff, #3f2b96);
+    padding: 20px;
+}
+
+.authBox {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+    box-sizing: border-box;
+}
+
+.authTitle {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #3f2b96;
+}
+
+.authForm {
+    display: flex;
+    flex-direction: column; /* Делаем вертикальное расположение */
+    gap: 15px;
+    align-items: center; /* Центрируем содержимое */
+    width: 100%;
+}
+
+.authInput {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: border-color 0.3s ease-in-out;
+    width: 100%;
+    max-width: 300px; /* Чтобы поля не были слишком широкими */
+    box-sizing: border-box;
+}
+
+.authInput:focus {
+    border-color: #3f2b96;
+    outline: none;
+}
+
+.authButton {
+    background: #3f2b96;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out, transform 0.2s;
+    width: 100%;
+    max-width: 300px; /* Делаем кнопку такой же ширины, как инпуты */
+    box-sizing: border-box;
+}
+
+.authButton:hover {
+    background: #5a3ec8;
+    transform: scale(1.05);
+}
+
+.authToggle {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #555;
+}
+
+.authToggle a {
+    color: #3f2b96;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.authToggle a:hover {
+    color: #5a3ec8;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
