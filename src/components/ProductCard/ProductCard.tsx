@@ -10,7 +10,8 @@ const ProductCard = () => {
             transition={{ duration: 0.5 }}
             className={styles.card}
         >
-            <div className={styles.image}></div>
+            <img src='../../../public/images22.jpg' alt='картинка' className={styles.image}/>
+
             <h3 className={styles.title}>Название товара</h3>
             <p className={styles.description}>Описание товара</p>
             <p className={styles.price}>$100</p>

@@ -5,6 +5,8 @@ import Login from "./auth/Login.tsx";
 import Register from "./auth/Register.tsx";
 import Verify from "./auth/Verify.tsx";
 import Verify2fa from "./auth/Verify2fa.tsx";
+import Catalog from "./pages/Catalog/Catalog.tsx";
+import Product from "./pages/Product/Product.tsx";
 
 const App = () => {
     return (
@@ -16,6 +18,8 @@ const App = () => {
                 <Route path="/register" element={<Register />} />
                 <Route path="/verify" element={<Verify />} />
                 <Route path="/verify2fa" element={<Verify2fa />} />
+                <Route path="/catalog" element={<Catalog />} />
+                <Route path="/product/:id" element={<Product />} />
             </Routes>
         </Router>
     );
