@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import styles from "./Auth.module.css";
-import { login } from "../services/authService";
+import authService from "../services/auth.service";
 
 const Login = () => {
     const [email, setEmail] = useState("");
@@ -17,10 +17,11 @@ const Login = () => {
             return;
         }
         try {
-            await login(email, password);
-            navigate("/verify2fa", { state: { email } }); // Передаем email
-        } catch {
-            setError("Ошибка входа");
+            await authService.login({ email, password });
+            navigate("/verify2fa", { state: { email } });
+        } catch (err) {
+            console.error("Ошибка входа:", err);
+            setError("Ошибка входа. Пожалуйста, проверьте email и пароль.");
         }
     };
 
@@ -39,6 +40,7 @@ const Login = () => {
                     className={styles.authInput}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
                 />
                 <input
                     type="password"
@@ -46,8 +48,9 @@ const Login = () => {
                     className={styles.authInput}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    required
                 />
-                {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
+                {error && <p className={styles.errorText}>{error}</p>}
                 <button type="submit" className={styles.authButton}>Войти</button>
             </form>
         </motion.div>

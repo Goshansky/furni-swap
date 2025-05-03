@@ -1,35 +1,152 @@
-import {useState} from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import styles from "./Catalog.module.css";
-import Header from "../../components/Header/Header.tsx";
-import Footer from "../../components/Footer/Footer.tsx";
-
-const products = [
-    {id: 1, name: "Диван", price: 200, category: "Мебель", image: "../../../public/images22.jpg"},
-    {id: 2, name: "Стол", price: 100, category: "Мебель", image: "../../../public/images22.jpg"},
-    {id: 3, name: "Кресло", price: 150, category: "Мебель", image: "../../../public/images22.jpg"},
-    {id: 4, name: "Лампа", price: 50, category: "Освещение", image: "../../../public/images22.jpg"},
-    {id: 5, name: "Лампа", price: 50, category: "Освещение", image: "../../../public/images22.jpg"},
-    {id: 6, name: "Лампа", price: 50, category: "Освещение", image: "../../../public/images22.jpg"},
-    {id: 7, name: "Лампа", price: 50, category: "Освещение", image: "../../../public/images22.jpg"},
-    {id: 8, name: "Лампа", price: 50, category: "Освещение", image: "../../../public/images22.jpg"},
-    {id: 9, name: "Лампа", price: 50, category: "Освещение", image: "../../../public/images22.jpg"},
-    {id: 10, name: "Лампа", price: 50, category: "Освещение", image: "../../../public/images22.jpg"},
-    {id: 11, name: "Лампа", price: 50, category: "Освещение", image: "../../../public/images22.jpg"}
-];
-
-const categories = ["Все", "Мебель", "Освещение"];
+import Header from "../../components/Header/Header";
+import Footer from "../../components/Footer/Footer";
+import listingService, { Listing, ListingFilter } from "../../services/listing.service";
+import ProductCard from "../../components/ProductCard/ProductCard";
 
 const Catalog = () => {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("Все");
-    const [sortOrder, setSortOrder] = useState("asc");
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    // Get URL query parameters
+    const queryParams = new URLSearchParams(location.search);
+    const initialCategory = queryParams.get('category') || '';
+    
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+    const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
+    const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
+    const [sortOrder, setSortOrder] = useState("desc");
+    const [listings, setListings] = useState<Listing[]>([]);
+    const [categories, setCategories] = useState<string[]>([
+        'Диваны и кресла', 'Столы и стулья', 'Шкафы и комоды', 'Кровати и матрасы', 'Другое'
+    ]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const filteredProducts = products.filter(product =>
-        (selectedCategory === "Все" || product.category === selectedCategory) &&
-        product.name.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => sortOrder === "asc" ? a.price - b.price : b.price - a.price);
+    // Fetch listings when filters change
+    useEffect(() => {
+        const fetchListings = async () => {
+            try {
+                setIsLoading(true);
+                
+                console.log("Applying filters:", {
+                    category: selectedCategory,
+                    minPrice,
+                    maxPrice,
+                    search: searchTerm
+                });
+                
+                const filterParams: ListingFilter = {
+                    page: 1,
+                    limit: 20
+                };
+                
+                if (selectedCategory) {
+                    filterParams.category = selectedCategory;
+                    
+                    // Update URL query parameter for better sharing/bookmarking
+                    if (selectedCategory) {
+                        queryParams.set('category', selectedCategory);
+                    } else {
+                        queryParams.delete('category');
+                    }
+                    
+                    const newSearch = queryParams.toString() 
+                        ? `?${queryParams.toString()}` 
+                        : '';
+                    
+                    // Update URL without reloading the page
+                    window.history.replaceState(
+                        {}, 
+                        '', 
+                        `${window.location.pathname}${newSearch}`
+                    );
+                }
+                
+                if (minPrice !== undefined) {
+                    filterParams.minPrice = minPrice;
+                }
+                
+                if (maxPrice !== undefined) {
+                    filterParams.maxPrice = maxPrice;
+                }
+                
+                if (searchTerm) {
+                    filterParams.search = searchTerm;
+                }
+                
+                console.log("Calling listingService with params:", filterParams);
+                
+                const response = await listingService.getListings(filterParams);
+                
+                if (response && response.listings) {
+                    console.log(`Got ${response.listings.length} listings from API:`, response.listings);
+                    setListings(response.listings);
+                    setError(null);
+                } else {
+                    console.warn("No listings returned from API");
+                    setListings([]);
+                    setError('Не удалось загрузить объявления');
+                }
+            } catch (err) {
+                console.error('Error fetching listings:', err);
+                setError('Не удалось загрузить объявления');
+                setListings([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        // Add a small delay to debounce frequent filter changes
+        const debounceTimeout = setTimeout(() => {
+            fetchListings();
+        }, 300);
+        
+        return () => clearTimeout(debounceTimeout);
+    }, [selectedCategory, minPrice, maxPrice, searchTerm]);
+
+    // Apply client-side sorting (since API might not support it)
+    const sortedListings = [...listings].sort((a, b) => {
+        if (sortOrder === "asc") {
+            return a.price - b.price;
+        } else {
+            return b.price - a.price;
+        }
+    });
+
+    const handleCategoryChange = (category: string) => {
+        setSelectedCategory(category);
+    };
+
+    const handleMinPriceChange = (value: string) => {
+        const parsedValue = value ? Number(value) : undefined;
+        if (!value || !isNaN(parsedValue as number)) {
+            setMinPrice(parsedValue);
+        }
+    };
+    
+    const handleMaxPriceChange = (value: string) => {
+        const parsedValue = value ? Number(value) : undefined;
+        if (!value || !isNaN(parsedValue as number)) {
+            setMaxPrice(parsedValue);
+        }
+    };
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        // The search will be triggered by the useEffect
+    };
+    
+    const clearFilters = () => {
+        setSearchTerm("");
+        setSelectedCategory("");
+        setMinPrice(undefined);
+        setMaxPrice(undefined);
+        setSortOrder("desc");
+    };
 
     return (
         <div>
@@ -38,41 +155,92 @@ const Catalog = () => {
             <div className={styles.catalogContainer}>
                 <h1 className={styles.title}>Каталог товаров</h1>
 
-                <input
-                    type="text"
-                    placeholder="Поиск по названию..."
-                    className={styles.searchInput}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <form onSubmit={handleSearch} className={styles.searchForm}>
+                    <input
+                        type="text"
+                        placeholder="Поиск по названию..."
+                        className={styles.searchInput}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <button type="submit" className={styles.searchButton}>Поиск</button>
+                </form>
 
                 <div className={styles.filters}>
-                    <select className={styles.filterButton} value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}>
+                    <select 
+                        className={styles.filterButton} 
+                        value={selectedCategory}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
+                    >
+                        <option value="">Все категории</option>
                         {categories.map(category => (
                             <option key={category} value={category}>{category}</option>
                         ))}
                     </select>
 
-                    <select className={styles.filterButton} value={sortOrder}
-                            onChange={(e) => setSortOrder(e.target.value)}>
+                    <div className={styles.priceFilter}>
+                        <input
+                            type="number"
+                            placeholder="Мин. цена"
+                            className={styles.priceInput}
+                            value={minPrice || ''}
+                            onChange={(e) => handleMinPriceChange(e.target.value)}
+                        />
+                        <span className={styles.priceSeparator}>-</span>
+                        <input
+                            type="number"
+                            placeholder="Макс. цена"
+                            className={styles.priceInput}
+                            value={maxPrice || ''}
+                            onChange={(e) => handleMaxPriceChange(e.target.value)}
+                        />
+                    </div>
+
+                    <select 
+                        className={styles.filterButton} 
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value)}
+                    >
                         <option value="asc">Сначала дешевые</option>
                         <option value="desc">Сначала дорогие</option>
                     </select>
+                    
+                    {(selectedCategory || minPrice !== undefined || maxPrice !== undefined || searchTerm) && (
+                        <button 
+                            className={styles.clearFilterButton}
+                            onClick={clearFilters}
+                        >
+                            Сбросить фильтры
+                        </button>
+                    )}
                 </div>
 
-                <div className={styles.productGrid}>
-                    {filteredProducts.map(product => (
-                        <div key={product.id} className={styles.productCard}>
-                            <img src={product.image} alt={product.name} className={styles.productImage}/>
-                            <h2 className={styles.productName}>{product.name}</h2>
-                            <p className={styles.productPrice}>${product.price}</p>
-                            <button className={styles.buyButton}
-                                    onClick={() => navigate(`/product/${product.id}`)}>Купить
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                {isLoading ? (
+                    <div className={styles.loading}>Загрузка объявлений...</div>
+                ) : error ? (
+                    <div className={styles.error}>{error}</div>
+                ) : (
+                    <div className={styles.productGrid}>
+                        {sortedListings.length > 0 ? (
+                            sortedListings.map(product => (
+                                <ProductCard 
+                                    key={product.id} 
+                                    id={product.id}
+                                    title={product.title}
+                                    description={product.description}
+                                    price={product.price}
+                                    location={product.location}
+                                    imageUrl={product.mainImage}
+                                    category={product.category}
+                                />
+                            ))
+                        ) : (
+                            <div className={styles.noProducts}>
+                                Не найдено объявлений, соответствующих вашим критериям
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
             <Footer/>
         </div>

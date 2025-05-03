@@ -2,30 +2,52 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import styles from "./Auth.module.css";
-import { verify2faCode } from "../services/authService";
+import authService from "../services/auth.service";
 
-const Verify = () => {
+interface LocationState {
+    email: string;
+}
+
+const Verify2fa = () => {
     const [code, setCode] = useState("");
     const [error, setError] = useState("");
-    const navigate = useNavigate();
     const location = useLocation();
-
-    // Получаем email из state
-    const email = location.state?.email || "";
+    const navigate = useNavigate();
+    const { email } = (location.state as LocationState) || { email: "" };
 
     const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!code) {
-            setError("Введите код");
+            setError("Введите код двухфакторной аутентификации");
+            return;
+        }
+        if (!email) {
+            setError("Email не указан. Пожалуйста, вернитесь к странице входа.");
             return;
         }
         try {
-            await verify2faCode(email, code);
-            navigate("/"); // Или нужная страница после верификации
-        } catch {
-            setError("Неверный код или ошибка сервера");
+            await authService.verify2fa({ email, code });
+            navigate("/"); // Перенаправление на главную страницу после авторизации
+        } catch (err) {
+            console.error("Ошибка двухфакторной аутентификации:", err);
+            setError("Неверный код. Пожалуйста, попробуйте снова.");
         }
     };
+
+    if (!email) {
+        return (
+            <div className={styles.authContainer}>
+                <h2 className={styles.authTitle}>Ошибка</h2>
+                <p className={styles.errorText}>Email не указан. Пожалуйста, вернитесь к странице входа.</p>
+                <button 
+                    onClick={() => navigate("/login")} 
+                    className={styles.authButton}
+                >
+                    Вернуться ко входу
+                </button>
+            </div>
+        );
+    }
 
     return (
         <motion.div
@@ -34,20 +56,22 @@ const Verify = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
         >
-            <h2 className={styles.authTitle}>Подтверждение</h2>
+            <h2 className={styles.authTitle}>Двухфакторная аутентификация</h2>
+            <p>Мы отправили код подтверждения на адрес: {email}</p>
             <form className={`${styles.authBox} ${styles.authForm}`} onSubmit={handleVerify}>
                 <input
                     type="text"
-                    placeholder="Введите код"
+                    placeholder="Код 2FA"
                     className={styles.authInput}
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
+                    required
                 />
-                {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
+                {error && <p className={styles.errorText}>{error}</p>}
                 <button type="submit" className={styles.authButton}>Подтвердить</button>
             </form>
         </motion.div>
     );
 };
 
-export default Verify;
+export default Verify2fa;

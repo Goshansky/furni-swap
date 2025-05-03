@@ -7,6 +7,10 @@ import Verify from "./auth/Verify.tsx";
 import Verify2fa from "./auth/Verify2fa.tsx";
 import Catalog from "./pages/Catalog/Catalog.tsx";
 import Product from "./pages/Product/Product.tsx";
+import Chat from "./pages/Chat/Chat.tsx";
+import Favorites from "./pages/Favorites/Favorites.tsx";
+import CreateListing from "./pages/CreateListing/CreateListing.tsx";
+import InspirationDesign from "./pages/InspirationDesign/InspirationDesign.tsx";
 
 const App = () => {
     return (
@@ -20,6 +24,11 @@ const App = () => {
                 <Route path="/verify2fa" element={<Verify2fa />} />
                 <Route path="/catalog" element={<Catalog />} />
                 <Route path="/product/:id" element={<Product />} />
+                <Route path="/chats" element={<Chat />} />
+                <Route path="/chats/:id" element={<Chat />} />
+                <Route path="/favorites" element={<Favorites />} />
+                <Route path="/create-listing" element={<CreateListing />} />
+                <Route path="/inspiration" element={<InspirationDesign />} />
             </Routes>
         </Router>
     );
