@@ -361,6 +361,34 @@ class ListingService {
       throw error;
     }
   }
+  
+  // Image URL handling
+  async uploadImageUrl(listingId: number, imageUrl: string) {
+    console.log("Uploading image URL for listing ID:", listingId);
+    if (!listingId) {
+      console.error("Invalid listing ID for image URL upload");
+      throw new Error("Недопустимый ID объявления для загрузки ссылки на изображение");
+    }
+    
+    try {
+      // Создаем FormData и добавляем image_url как параметр
+      const formData = new FormData();
+      formData.append('image_url', imageUrl);
+      
+      console.log(`Sending image URL "${imageUrl}" to /api/listings/${listingId}/images`);
+      
+      const response = await api.post(`/api/listings/${listingId}/images`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      console.log("Upload image URL response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error uploading image URL:", error);
+      throw error;
+    }
+  }
 
   async deleteImage(listingId: number, imageId: number) {
     const response = await api.delete(`/api/listings/${listingId}/images/${imageId}`);

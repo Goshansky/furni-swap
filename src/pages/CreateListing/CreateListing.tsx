@@ -15,6 +15,8 @@ interface FormData {
   location: string;
   condition: string;
   images: File[];
+  image_url: string;
+  image_urls: string[];
 }
 
 interface Category {
@@ -33,6 +35,8 @@ const CreateListing = () => {
     location: '',
     condition: 'хорошее',
     images: [],
+    image_url: '',
+    image_urls: []
   });
   
   const [categories, setCategories] = useState<Category[]>([
@@ -146,6 +150,57 @@ const CreateListing = () => {
     setPreviewImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleAddImageUrl = () => {
+    if (!formData.image_url) {
+      setGlobalError('Введите URL изображения');
+      return;
+    }
+
+    // Validate if it's a valid URL
+    try {
+      new URL(formData.image_url);
+    } catch (e) {
+      setGlobalError('Введите корректный URL изображения');
+      return;
+    }
+
+    // Check if adding this URL would exceed the 10 image limit
+    if ((formData.images.length + formData.image_urls.length + 1) > 10) {
+      setGlobalError(`Максимальное количество фотографий: 10. Вы можете добавить еще ${10 - formData.images.length - formData.image_urls.length}.`);
+      return;
+    }
+
+    // Add URL to the list and update preview
+    setFormData(prev => ({
+      ...prev,
+      image_urls: [...prev.image_urls, prev.image_url],
+      image_url: '' // Clear input field
+    }));
+
+    setPreviewImages(prev => [...prev, formData.image_url]);
+
+    // Clear errors
+    if (errors.images) {
+      setErrors(prev => ({ ...prev, images: '' }));
+    }
+    setGlobalError(null);
+  };
+
+  const removeImageUrl = (index: number) => {
+    const actualIndex = formData.images.length + index;
+    
+    setFormData(prev => ({
+      ...prev,
+      image_urls: prev.image_urls.filter((_, i) => i !== index),
+    }));
+    
+    setPreviewImages(prev => {
+      const newPreviews = [...prev];
+      newPreviews.splice(actualIndex, 1);
+      return newPreviews;
+    });
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
     
@@ -157,7 +212,7 @@ const CreateListing = () => {
     }
     if (!formData.category_id) newErrors.category = 'Выберите категорию';
     if (!formData.location.trim()) newErrors.location = 'Местоположение обязательно';
-    if (formData.images.length === 0) newErrors.images = 'Добавьте хотя бы одно фото';
+    if (formData.images.length === 0 && formData.image_urls.length === 0) newErrors.images = 'Добавьте хотя бы одно фото';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -194,6 +249,9 @@ const CreateListing = () => {
       console.log(`Listing created successfully, ID: ${listingId}`);
       
       // 2. Затем загружаем изображения
+      let mainImageSet = false;
+      
+      // Upload files
       if (formData.images.length > 0) {
         console.log(`Uploading ${formData.images.length} images for listing ${listingId}`);
         try {
@@ -201,7 +259,8 @@ const CreateListing = () => {
             return listingService.uploadImage(listingId, image)
               .then(response => {
                 // Если это первое изображение, делаем его главным
-                if (index === 0 && response && response.id) {
+                if (index === 0 && response && response.id && !mainImageSet) {
+                  mainImageSet = true;
                   return listingService.setMainImage(listingId, response.id);
                 }
               })
@@ -217,6 +276,35 @@ const CreateListing = () => {
         } catch (uploadError) {
           console.error("Error during image upload:", uploadError);
           // Continue with navigation even if image upload fails
+        }
+      }
+      
+      // Upload image URLs
+      if (formData.image_urls.length > 0) {
+        console.log(`Uploading ${formData.image_urls.length} image URLs for listing ${listingId}`);
+        try {
+          const uploadPromises = formData.image_urls.map((imageUrl, index) => {
+            console.log(`[${index}] Preparing to upload URL: ${imageUrl}`);
+            return listingService.uploadImageUrl(listingId, imageUrl)
+              .then(response => {
+                console.log(`[${index}] Successfully uploaded URL: ${imageUrl}`, response);
+                // If no main image set yet and this is the first URL image, make it main
+                if (index === 0 && response && response.id && !mainImageSet) {
+                  console.log(`Setting URL image [${index}] as main image, ID: ${response.id}`);
+                  mainImageSet = true;
+                  return listingService.setMainImage(listingId, response.id);
+                }
+              })
+              .catch(error => {
+                console.error(`Error uploading image URL ${index} (${imageUrl}):`, error);
+                return null;
+              });
+          });
+          
+          await Promise.all(uploadPromises);
+          console.log("All image URLs uploaded successfully");
+        } catch (uploadError) {
+          console.error("Error during image URL upload:", uploadError);
         }
       }
       
@@ -365,23 +453,51 @@ const CreateListing = () => {
             <h2 className={styles.sectionTitle}>Фотографии</h2>
             <p className={styles.photoInfo}>Добавьте до 10 фотографий. Первая фотография будет главной.</p>
             
+            <div className={styles.photoUploadInfo}>
+              <p className={styles.photoUploadWarning}>
+                Загрузка фото временно недоступна, прикрепляйте ссылку на фотографию
+              </p>
+              
+              <div className={styles.imageUrlInput}>
+                <input
+                  type="text"
+                  className={styles.input}
+                  placeholder="Вставьте ссылку на изображение"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                />
+                <button 
+                  type="button" 
+                  className={styles.addUrlButton}
+                  onClick={handleAddImageUrl}
+                >
+                  Добавить
+                </button>
+              </div>
+            </div>
+            
             <div className={styles.photoUpload}>
               <div className={styles.photoGrid}>
-                {previewImages.map((url, index) => (
-                  <div key={index} className={styles.photoPreview}>
-                    <img src={url} alt={`Preview ${index + 1}`} />
-                    <button 
-                      type="button" 
-                      className={styles.removePhoto}
-                      onClick={() => removeImage(index)}
-                    >
-                      ✕
-                    </button>
-                    {index === 0 && <span className={styles.mainPhoto}>Главное фото</span>}
-                  </div>
-                ))}
+                {previewImages.map((url, index) => {
+                  const isFileImage = index < formData.images.length;
+                  const urlIndex = !isFileImage ? index - formData.images.length : -1;
+                  
+                  return (
+                    <div key={index} className={styles.photoPreview}>
+                      <img src={url} alt={`Preview ${index + 1}`} />
+                      <button 
+                        type="button" 
+                        className={styles.removePhoto}
+                        onClick={() => isFileImage ? removeImage(index) : removeImageUrl(urlIndex)}
+                      >
+                        ✕
+                      </button>
+                      {index === 0 && <span className={styles.mainPhoto}>Главное фото</span>}
+                    </div>
+                  );
+                })}
                 
-                {formData.images.length < 10 && (
+                {(formData.images.length + formData.image_urls.length) < 10 && (
                   <label className={`${styles.addPhotoButton} ${isUploading ? styles.uploading : ''}`}>
                     <input
                       type="file"
