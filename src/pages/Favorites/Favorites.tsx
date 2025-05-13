@@ -34,8 +34,11 @@ const Favorites = () => {
         const response = await listingService.getFavorites();
         console.log("Favorites response:", response);
         
-        if (response && response.favorites) {
+        if (response && response.favorites && Array.isArray(response.favorites)) {
           setFavorites(response.favorites);
+          setError(null);
+        } else if (response && Array.isArray(response)) {
+          setFavorites(response);
           setError(null);
         } else {
           setFavorites([]);
@@ -55,8 +58,15 @@ const Favorites = () => {
 
   const handleRemoveFromFavorites = async (id: number) => {
     try {
-      await listingService.removeFromFavorites(id);
+      console.log(`Removing listing ID ${id} from favorites...`);
+      const response = await listingService.removeFromFavorites(id);
+      console.log("Remove from favorites response:", response);
+      
+      // Обновляем список избранных в UI без полной перезагрузки данных
       setFavorites(favorites.filter(item => item.id !== id));
+      
+      // Можно также показать уведомление об успешном удалении
+      // Например: toast.success("Товар удален из избранного");
     } catch (err) {
       console.error('Error removing from favorites:', err);
       alert('Не удалось удалить объявление из избранного');
@@ -116,8 +126,8 @@ const Favorites = () => {
                   id={item.id}
                   title={item.title}
                   price={item.price}
-                  location={item.location}
-                  imageUrl={item.mainImage}
+                  location={item.city || item.location || ''}
+                  imageUrl={item.mainImage || (item.images && item.images.length > 0 ? item.images[0] : undefined)}
                 />
                 <button
                   className={styles.removeButton}

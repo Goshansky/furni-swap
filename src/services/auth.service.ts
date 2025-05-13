@@ -5,8 +5,6 @@ interface RegisterData {
   last_name: string;
   email: string;
   password: string;
-  city: string;
-  avatar?: File;
 }
 
 interface LoginData {
@@ -31,15 +29,10 @@ class AuthService {
     formData.append('last_name', data.last_name);
     formData.append('email', data.email);
     formData.append('password', data.password);
-    formData.append('city', data.city);
-    
-    if (data.avatar) {
-      formData.append('avatar', data.avatar);
-    }
     
     const response = await api.post('/auth/register', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'application/json'
       }
     });
     return response.data;
@@ -78,6 +71,10 @@ class AuthService {
 
   isAuthenticated() {
     return !!localStorage.getItem('token');
+  }
+
+  getToken() {
+    return localStorage.getItem('token');
   }
 }
 

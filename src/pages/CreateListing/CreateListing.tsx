@@ -47,6 +47,7 @@ const CreateListing = () => {
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const isAuthenticated = authService.isAuthenticated();
 
   // Проверяем авторизацию пользователя
@@ -88,11 +89,50 @@ const CreateListing = () => {
     if (!e.target.files || e.target.files.length === 0) return;
     
     const selectedFiles = Array.from(e.target.files);
-    setFormData(prev => ({ ...prev, images: [...prev.images, ...selectedFiles] }));
+    const maxSizeInMB = 5;
+    const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
     
-    // Generate preview URLs
-    const newPreviewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+    // Check if adding these new files would exceed the 10 image limit
+    if (formData.images.length + selectedFiles.length > 10) {
+      setGlobalError(`Максимальное количество фотографий: 10. Вы можете добавить еще ${10 - formData.images.length}.`);
+      return;
+    }
+    
+    // Check file sizes and filter out oversized files
+    const oversizedFiles = selectedFiles.filter(file => file.size > maxSizeInBytes);
+    const validFiles = selectedFiles.filter(file => file.size <= maxSizeInBytes);
+    
+    if (oversizedFiles.length > 0) {
+      setGlobalError(`${oversizedFiles.length} ${oversizedFiles.length === 1 ? 'файл превышает' : 'файлов превышают'} ${maxSizeInMB} МБ и ${oversizedFiles.length === 1 ? 'будет пропущен' : 'будут пропущены'}.`);
+      
+      // If all files are oversized, return
+      if (validFiles.length === 0) return;
+    }
+    
+    setIsUploading(true);
+    
+    // Add only valid files to form data
+    setFormData(prev => ({ ...prev, images: [...prev.images, ...validFiles] }));
+    
+    // Generate preview URLs for valid files
+    const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
     setPreviewImages(prev => [...prev, ...newPreviewUrls]);
+    
+    // Clear errors related to images
+    if (errors.images) {
+      setErrors(prev => ({ ...prev, images: '' }));
+    }
+    
+    // Clear error after 5 seconds if we showed a warning about oversized files
+    if (oversizedFiles.length > 0) {
+      setTimeout(() => {
+        setGlobalError(null);
+      }, 5000);
+    } else {
+      setGlobalError(null);
+    }
+    
+    setIsUploading(false);
   };
 
   const removeImage = (index: number) => {
@@ -245,6 +285,11 @@ const CreateListing = () => {
                 className={`${styles.textarea} ${errors.description ? styles.inputError : ''}`}
                 placeholder="Опишите состояние, размеры, материал, цвет и другие особенности товара"
                 rows={5}
+                style={{ 
+                  maxWidth: '100%',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}
               />
               {errors.description && <p className={styles.errorText}>{errors.description}</p>}
             </div>
@@ -337,16 +382,26 @@ const CreateListing = () => {
                 ))}
                 
                 {formData.images.length < 10 && (
-                  <label className={styles.addPhotoButton}>
+                  <label className={`${styles.addPhotoButton} ${isUploading ? styles.uploading : ''}`}>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleFileChange}
                       multiple
                       style={{ display: 'none' }}
+                      disabled={isUploading}
                     />
-                    <span>+</span>
-                    <span>Добавить фото</span>
+                    {isUploading ? (
+                      <>
+                        <span className={styles.spinnerIcon}>⟳</span>
+                        <span>Загрузка...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>+</span>
+                        <span>Добавить фото</span>
+                      </>
+                    )}
                   </label>
                 )}
               </div>

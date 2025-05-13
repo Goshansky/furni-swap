@@ -11,6 +11,7 @@ import Chat from "./pages/Chat/Chat.tsx";
 import Favorites from "./pages/Favorites/Favorites.tsx";
 import CreateListing from "./pages/CreateListing/CreateListing.tsx";
 import InspirationDesign from "./pages/InspirationDesign/InspirationDesign.tsx";
+import Purchases from "./pages/Purchases/Purchases.tsx";
 
 const App = () => {
     return (
@@ -27,6 +28,7 @@ const App = () => {
                 <Route path="/chats" element={<Chat />} />
                 <Route path="/chats/:id" element={<Chat />} />
                 <Route path="/favorites" element={<Favorites />} />
+                <Route path="/purchases" element={<Purchases />} />
                 <Route path="/create-listing" element={<CreateListing />} />
                 <Route path="/inspiration" element={<InspirationDesign />} />
             </Routes>

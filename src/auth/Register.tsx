@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import styles from "./Auth.module.css";
@@ -9,22 +9,13 @@ const Register = () => {
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [city, setCity] = useState("");
-    const [avatar, setAvatar] = useState<File | null>(null);
     const [error, setError] = useState("");
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            setAvatar(e.target.files[0]);
-        }
-    };
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || !lastName || !email || !password || !city || !avatar) {
-            setError("Пожалуйста, заполните все поля и загрузите фото");
+        if (!name || !lastName || !email || !password) {
+            setError("Пожалуйста, заполните все поля");
             return;
         }
         
@@ -33,9 +24,7 @@ const Register = () => {
                 name,
                 last_name: lastName,
                 email,
-                password,
-                city,
-                avatar
+                password
             });
             navigate("/verify", { state: { email } });
         } catch (err) {
@@ -85,40 +74,6 @@ const Register = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                 />
-                <input
-                    type="text"
-                    placeholder="Город"
-                    className={styles.authInput}
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    required
-                />
-                <div className={styles.fileInputContainer}>
-                    <button 
-                        type="button" 
-                        className={styles.fileInputButton}
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        {avatar ? 'Фото выбрано' : 'Выберите фото профиля'}
-                    </button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className={styles.fileInput}
-                        required
-                    />
-                </div>
-                {avatar && (
-                    <div className={styles.avatarPreview}>
-                        <img 
-                            src={URL.createObjectURL(avatar)} 
-                            alt="Avatar preview" 
-                            className={styles.avatarImage}
-                        />
-                    </div>
-                )}
                 {error && <p className={styles.errorText}>{error}</p>}
                 <button type="submit" className={styles.authButton}>Зарегистрироваться</button>
             </form>
