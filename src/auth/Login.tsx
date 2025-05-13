@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import styles from "./Auth.module.css";
 import authService from "../services/auth.service";
@@ -52,6 +52,13 @@ const Login = () => {
                 />
                 {error && <p className={styles.errorText}>{error}</p>}
                 <button type="submit" className={styles.authButton}>Войти</button>
+                
+                <div className={styles.authToggle}>
+                    Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+                </div>
+                <div className={styles.authToggle}>
+                    <Link to="/">Вернуться на главную</Link>
+                </div>
             </form>
         </motion.div>
     );
