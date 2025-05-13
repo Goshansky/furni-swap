@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
 import chatService from '../../services/chat.service';
 import authService from '../../services/auth.service';
+import userService from '../../services/user.service';
 import { Chat as ChatType, Message } from '../../services/chat.service';
 import styles from './Chat.module.css';
 import React from 'react';
@@ -19,6 +20,7 @@ const Chat = () => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [usersData, setUsersData] = useState<Record<number, any>>({});
   const isAuthenticated = authService.isAuthenticated();
   const messageListRef = React.useRef<HTMLDivElement>(null);
 
@@ -48,7 +50,42 @@ const Chat = () => {
         console.log('Chats received:', data);
         
         if (data && Array.isArray(data.chats)) {
-          setChats(data.chats.filter(chat => chat !== null && chat !== undefined));
+          const filteredChats = data.chats.filter(chat => chat !== null && chat !== undefined);
+          setChats(filteredChats);
+          
+          // Загружаем информацию о пользователях для всех чатов
+          const userIds = new Set<number>();
+          filteredChats.forEach(chat => {
+            // Get other user ID based on the API response format
+            if (chat.user1_id && chat.user2_id) {
+              const currentUserId = authService.getCurrentUser()?.id;
+              const otherUserId = chat.user1_id === currentUserId ? chat.user2_id : chat.user1_id;
+              if (otherUserId) userIds.add(otherUserId);
+            } 
+            // Alternative way to get user ID
+            else if (chat.other_user_id) {
+              userIds.add(chat.other_user_id);
+            }
+            // Check buyer/seller IDs
+            else if (chat.buyer_id && chat.seller_id) {
+              const currentUserId = authService.getCurrentUser()?.id;
+              const otherUserId = chat.buyer_id === currentUserId ? chat.seller_id : chat.buyer_id;
+              if (otherUserId) userIds.add(otherUserId);
+            }
+            // Check users array
+            else if (chat.users && Array.isArray(chat.users)) {
+              chat.users.forEach(user => {
+                if (user && user.id && user.id !== authService.getCurrentUser()?.id) {
+                  userIds.add(user.id);
+                }
+              });
+            }
+          });
+          
+          console.log('User IDs to fetch:', Array.from(userIds));
+          // Загружаем данные пользователей
+          await fetchUserData(userIds);
+          
           setError(null);
         } else {
           console.warn('No valid chats data returned from API:', data);
@@ -65,6 +102,28 @@ const Chat = () => {
 
     fetchChats();
   }, [isAuthenticated, navigate, id]);
+
+  // Загрузка данных пользователей
+  const fetchUserData = async (userIds: Set<number>) => {
+    const newUsersData: Record<number, any> = { ...usersData };
+    
+    for (const userId of userIds) {
+      if (!newUsersData[userId]) {
+        try {
+          console.log(`Fetching user data for ID ${userId}`);
+          const userData = await userService.getUserById(userId);
+          if (userData) {
+            console.log(`Received user data for ID ${userId}:`, userData);
+            newUsersData[userId] = userData;
+          }
+        } catch (error) {
+          console.error(`Failed to fetch user data for ID ${userId}:`, error);
+        }
+      }
+    }
+    
+    setUsersData(newUsersData);
+  };
 
   // Добавляем обработчик ресайза окна для поддержания скролла
   useEffect(() => {
@@ -110,7 +169,41 @@ const Chat = () => {
           console.log('Messages received:', data);
           
           if (data && Array.isArray(data.messages)) {
-            setMessages(data.messages.filter(msg => msg !== null && msg !== undefined));
+            const validMessages = data.messages.filter(msg => msg !== null && msg !== undefined);
+            setMessages(validMessages);
+            
+            // Получаем ID пользователей из сообщений
+            const userIds = new Set<number>();
+            
+            // Get the current chat to extract other user ID
+            const currentChat = chats.find(c => c.id === Number(id));
+            if (currentChat) {
+              // Determine other user ID based on available data
+              if (currentChat.user1_id && currentChat.user2_id) {
+                const otherUserId = currentChat.user1_id === currentUser?.id 
+                  ? currentChat.user2_id 
+                  : currentChat.user1_id;
+                userIds.add(otherUserId);
+              } else if (currentChat.other_user_id) {
+                userIds.add(currentChat.other_user_id);
+              } else if (currentChat.buyer_id && currentChat.seller_id) {
+                const otherUserId = currentChat.buyer_id === currentUser?.id 
+                  ? currentChat.seller_id 
+                  : currentChat.buyer_id;
+                userIds.add(otherUserId);
+              }
+            }
+            
+            // Add message sender IDs
+            validMessages.forEach(msg => {
+              if (msg.senderId && msg.senderId !== currentUser?.id) {
+                userIds.add(msg.senderId);
+              }
+            });
+            
+            // Загружаем данные пользователей из сообщений
+            await fetchUserData(userIds);
+            
             setError(null);
             
             // Scroll to bottom after loading messages - with timeout to ensure render is complete
@@ -130,43 +223,61 @@ const Chat = () => {
     };
 
     fetchMessages();
-  }, [id, isAuthenticated]);
+  }, [id, isAuthenticated, currentUser?.id, chats]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !id) return;
 
+    // Создаем временное сообщение для немедленного отображения
+    const tempMessage: Message = {
+      id: Date.now() + Math.random(), // Уникальный временный ID
+      chatId: Number(id),
+      senderId: currentUser?.id,
+      text: messageText,
+      createdAt: new Date().toISOString()
+    };
+    
     try {
       setIsSending(true);
-      console.log(`Sending message to chat ID: ${id}, text: ${messageText}`);
-      const response = await chatService.sendMessage(Number(id), { content: messageText });
+      
+      // Добавляем сообщение в список сразу для мгновенной обратной связи
+      setMessages(prev => [...prev, tempMessage]);
+      
+      // Очищаем поле ввода сразу
+      setMessageText('');
+      
+      // Прокручиваем к последнему сообщению
+      scrollToBottom(100);
+      
+      // Отправляем сообщение на сервер
+      console.log(`Sending message to chat ID: ${id}, text: ${tempMessage.text}`);
+      const response = await chatService.sendMessage(Number(id), { content: tempMessage.text });
       console.log('Message sent, response:', response);
       
-      // Добавляем новое сообщение к списку
+      // Заменяем временное сообщение реальным, если пришел ответ
       if (response && response.message) {
-        setMessages(prev => [...prev, response.message]);
-        setMessageText('');
-        // Scroll to the bottom after adding new message
-        scrollToBottom(100);
-      } else if (response && typeof response === 'object') {
-        // Fallback if message is directly in the response object
-        const messageObj: Message = {
-          id: response.id || Date.now(),
-          chatId: Number(id),
-          senderId: currentUser?.id,
-          text: messageText,
-          createdAt: response.createdAt || new Date().toISOString()
-        };
-        setMessages(prev => [...prev, messageObj]);
-        setMessageText('');
-        // Scroll to the bottom after adding new message
-        scrollToBottom(100);
-      } else {
-        console.warn('No message data in response');
-        setError('Сообщение отправлено, но не получен ответ от сервера');
+        setMessages(prev => {
+          // Находим и заменяем временное сообщение на реальное
+          const newMessages = prev.filter(msg => msg.id !== tempMessage.id);
+          // Добавляем сообщение от сервера
+          newMessages.push({
+            ...response.message,
+            // Убедимся, что сообщение точно имеет требуемые поля
+            id: response.message.id || Date.now() + Math.random(),
+            chatId: Number(id),
+            senderId: currentUser?.id,
+            text: response.message.text || tempMessage.text,
+            createdAt: response.message.createdAt || tempMessage.createdAt
+          });
+          return newMessages;
+        });
       }
     } catch (err) {
       console.error('Error sending message:', err);
       setError('Не удалось отправить сообщение');
+      
+      // Удаляем временное сообщение в случае ошибки
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
     } finally {
       setIsSending(false);
     }
@@ -192,68 +303,76 @@ const Chat = () => {
 
   // Безопасно получить другого пользователя из чата
   const getOtherUserInfo = (chat: ChatType) => {
-    // If chat has users array, use it
-    if (chat.users && Array.isArray(chat.users) && chat.users.length > 0) {
-      const otherUser = chat.users.find(user => user && user.id !== currentUser?.id);
+    // Current user ID from state
+    const currentUserId = currentUser?.id;
+    
+    // First determine other user ID based on available fields
+    let otherUserId = 0;
+    let otherUserName = 'Пользователь';
+    
+    // Check if chat has user1_id and user2_id (from API response format)
+    if (chat?.user1_id && chat?.user2_id) {
+      otherUserId = chat.user1_id === currentUserId ? chat.user2_id : chat.user1_id;
+      otherUserName = chat.user1_id === currentUserId ? (chat.user2_name || 'Пользователь') : (chat.user1_name || 'Пользователь');
+    }
+    // Alternative format with buyer/seller IDs
+    else if (chat?.buyer_id && chat?.seller_id) {
+      otherUserId = chat.buyer_id === currentUserId ? chat.seller_id : chat.buyer_id;
+    }
+    // If there's a direct other_user_id field
+    else if (chat?.other_user_id) {
+      otherUserId = chat.other_user_id;
+      otherUserName = chat.other_user_name || 'Пользователь';
+    }
+    // Check users array if available
+    else if (chat?.users && Array.isArray(chat.users) && chat.users.length > 0) {
+      const otherUser = chat.users.find(user => user && user.id !== currentUserId);
       if (otherUser) {
-        return {
-          id: otherUser.id,
-          name: otherUser.name || 'Пользователь',
-          avatar: otherUser.avatar
-        };
+        otherUserId = otherUser.id;
+        otherUserName = otherUser.name || 'Пользователь';
       }
     }
     
-    // Otherwise use other_user fields or determine from buyer/seller
-    if (chat.other_user_id && chat.other_user_name) {
-      return {
-        id: chat.other_user_id,
-        name: chat.other_user_name,
-        avatar: null
-      };
-    }
+    // Get cached user data if available
+    const cachedUser = usersData[otherUserId];
     
-    // Determine if current user is buyer or seller
-    const currentUserId = currentUser?.id;
-    if (chat.buyer_id && chat.seller_id) {
-      const otherUserId = chat.buyer_id === currentUserId ? chat.seller_id : chat.buyer_id;
-      return {
-        id: otherUserId,
-        name: chat.other_user_name || 'Пользователь',
-        avatar: null
-      };
-    }
-    
-    // Fallback
     return {
-      id: 0,
-      name: 'Пользователь',
-      avatar: null
+      id: otherUserId,
+      name: cachedUser?.name || otherUserName,
+      avatar: cachedUser?.avatar || null
     };
   };
   
   // Get chat title and image
   const getChatListingInfo = (chat: ChatType) => {
     return {
-      title: chat.listing_title || chat.listingTitle || '',
-      image: chat.image_url || chat.listingImage || null
+      title: chat?.listing_title || chat?.listingTitle || '',
+      image: chat?.image_url || chat?.listingImage || null
     };
   };
   
   // Get last message info
   const getLastMessageInfo = (chat: ChatType) => {
-    // If chat has lastMessage object
-    if (chat.lastMessage && typeof chat.lastMessage === 'object') {
+    // Check for last_message field from the API response
+    if (chat?.last_message) {
+      return {
+        text: chat.last_message,
+        time: chat.last_message_at || chat.last_message_time || chat.created_at || ''
+      };
+    }
+    
+    // If chat has lastMessage object (backward compatibility)
+    if (chat?.lastMessage && typeof chat.lastMessage === 'object') {
       return {
         text: chat.lastMessage.text || 'Нет сообщений',
         time: chat.lastMessage.createdAt || chat.created_at || ''
       };
     }
     
-    // Otherwise use last_message fields
+    // Default fallback
     return {
-      text: chat.last_message || 'Нет сообщений',
-      time: chat.last_message_time || chat.created_at || ''
+      text: 'Нет сообщений',
+      time: chat?.created_at || ''
     };
   };
   
@@ -445,9 +564,22 @@ const Chat = () => {
                 <div className={styles.messagesHeader}>
                   {currentChat && (
                     <>
-                      <h2>
-                        {getOtherUserInfo(currentChat).name}
-                      </h2>
+                      <div className={styles.headerUserInfo}>
+                        {getOtherUserInfo(currentChat).avatar && (
+                          <img 
+                            src={typeof getOtherUserInfo(currentChat).avatar === 'string' && 
+                                 (getOtherUserInfo(currentChat).avatar?.startsWith('http://') || 
+                                  getOtherUserInfo(currentChat).avatar?.startsWith('https://'))
+                                ? getOtherUserInfo(currentChat).avatar 
+                                : getFullImageUrl(getOtherUserInfo(currentChat).avatar)}
+                            alt={getOtherUserInfo(currentChat).name}
+                            className={styles.headerAvatar}
+                          />
+                        )}
+                        <h2>
+                          {getOtherUserInfo(currentChat).name}
+                        </h2>
+                      </div>
                       <div className={styles.listingInfo}>
                         {getChatListingInfo(currentChat).title}
                       </div>
@@ -461,40 +593,39 @@ const Chat = () => {
                       <p>Отправьте сообщение, чтобы начать диалог</p>
                     </div>
                   ) : (
-                    groupMessagesByDateAndSender(messages).map(([dateString, dateMessages]) => (
-                      <div key={dateString}>
+                    groupMessagesByDateAndSender(messages).map(([dateString, dateMessages], groupIndex) => (
+                      <div key={`date-group-${dateString}-${groupIndex}`}>
                         <div className={styles.messageDate}>
                           <span>{formatMessageDate(dateString)}</span>
                         </div>
-                        {dateMessages.map((message, index) => {
+                        {dateMessages.map((message, msgIndex) => {
                           if (!message || typeof message !== 'object') return null;
                           
-                          // Get appropriate user for the avatar
-                          const messageUser = message.senderId === currentUser?.id 
-                            ? currentUser 
-                            : currentChat && getOtherUserInfo(currentChat);
+                          // Определяем, является ли сообщение моим или от собеседника
+                          const isMyMessage = message.senderId === currentUser?.id;
                           
-                          // Get avatar URL
-                          const avatarUrl = message.senderId !== currentUser?.id
-                            ? (messageUser?.avatar 
-                                ? (typeof messageUser.avatar === 'string' && (messageUser.avatar.startsWith('http://') || messageUser.avatar.startsWith('https://')) 
-                                    ? messageUser.avatar 
-                                    : getFullImageUrl(messageUser.avatar))
-                                : 'https://via.placeholder.com/50?text=U')
-                            : (currentUser?.avatar 
-                                ? (typeof currentUser.avatar === 'string' && (currentUser.avatar.startsWith('http://') || currentUser.avatar.startsWith('https://'))
-                                    ? currentUser.avatar
-                                    : getFullImageUrl(currentUser.avatar))
-                                : 'https://via.placeholder.com/50?text=Me');
-                            
+                          // Получаем данные пользователя
+                          const userData = isMyMessage 
+                            ? currentUser 
+                            : usersData[message.senderId] || getOtherUserInfo(currentChat!);
+                          
+                          // Получаем URL аватара
+                          const avatarUrl = userData?.avatar 
+                            ? (typeof userData.avatar === 'string' && (userData.avatar.startsWith('http://') || userData.avatar.startsWith('https://')) 
+                              ? userData.avatar 
+                              : getFullImageUrl(userData.avatar))
+                            : (isMyMessage 
+                              ? 'https://via.placeholder.com/50?text=Me'
+                              : 'https://via.placeholder.com/50?text=U');
+                          
                           return (
                             <div 
-                              key={message.id || `temp-${Date.now()}-${index}`} 
-                              className={`${styles.message} ${message.senderId === currentUser?.id ? styles.ownMessage : styles.otherMessage} ${message.isConsecutive ? styles.consecutiveMessage : ''}`}
+                              key={`msg-${message.id}-${msgIndex}`}
+                              className={`${styles.message} ${isMyMessage ? styles.ownMessage : styles.otherMessage} ${message.isConsecutive ? styles.consecutiveMessage : ''}`}
                             >
                               <img 
                                 src={avatarUrl}
-                                alt={message.senderId === currentUser?.id ? 'Вы' : 'Собеседник'} 
+                                alt={isMyMessage ? 'Вы' : userData?.name || 'Собеседник'} 
                                 className={styles.messageAvatar} 
                               />
                               <div className={styles.messageContent}>
@@ -524,7 +655,7 @@ const Chat = () => {
                   <button 
                     onClick={handleSendMessage} 
                     className={styles.sendButton}
-                    disabled={!messageText.trim() || isSending}
+                    disabled={isSending}
                   >
                     {isSending ? 'Отправка...' : 'Отправить'}
                   </button>

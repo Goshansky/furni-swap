@@ -107,10 +107,19 @@ const Product = () => {
             // Show loading indicator or disable button during chat creation
             setIsLoading(true);
             
-            console.log("Creating chat for listing:", product.id);
+            const sellerId = product.user_id || product.userId;
+            if (!sellerId) {
+                console.error("Cannot find seller ID in product data:", product);
+                setError("Не удалось найти информацию о продавце. Пожалуйста, попробуйте позже.");
+                setIsLoading(false);
+                return;
+            }
+            
+            console.log("Creating chat for listing:", product.id, "Seller ID:", sellerId);
             const chatData = await chatService.createChat({
                 listing_id: product.id,
-                message: "Здравствуйте, это объявление еще актуально?"
+                message: "Здравствуйте!",
+                recipient_id: sellerId
             });
             
             console.log("Chat creation response:", chatData);

@@ -21,6 +21,12 @@ export interface Chat {
   other_user_id?: number;
   other_user_name?: string;
   unread_count?: number;
+  // Fields from new API response format
+  user1_id?: number;
+  user2_id?: number;
+  user1_name?: string;
+  user2_name?: string;
+  last_message_at?: string;
   // Backward compatibility fields
   users?: {
     id: number;
@@ -42,6 +48,7 @@ export interface Chat {
 export interface CreateChatData {
   listing_id: number;
   message: string;
+  recipient_id?: number;
 }
 
 export interface SendMessageData {
@@ -263,7 +270,8 @@ class ChatService {
       try {
         const response = await api.post('/api/chats', {
           listing_id: data.listing_id,
-          message: data.message
+          message: data.message,
+          recipient_id: data.recipient_id
         });
         console.log("Create chat response:", response.data);
         
