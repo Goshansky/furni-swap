@@ -297,7 +297,50 @@
 }
 
 .purchasesPreview {
-    margin-top: 15px;
+    margin-top: 1rem;
+}
+
+.purchasesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.purchaseCard {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    padding: 1.5rem;
+}
+
+.purchaseCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.purchaseInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.purchaseTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: #333;
+}
+
+.purchaseTitle a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.purchaseTitle a:hover {
+    text-decoration: underline;
 }
 
 .errorMessage {
@@ -362,4 +405,15 @@
     .listingsGrid {
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     }
+}
+
+.sellerInfo,
+.buyerInfo {
+    font-size: 13px;
+    color: #555;
+    margin: 2px 0;
+}
+
+.salesPreview {
+    margin-top: 1rem;
 }

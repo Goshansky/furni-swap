@@ -38,17 +38,47 @@ const Purchases = () => {
   }, [isAuthenticated, navigate]);
 
   // Helper function to format the date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Дата не указана';
+    
+    try {
+      return new Date(dateString).toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error("Invalid date format:", error);
+      return 'Неверный формат даты';
+    }
+  };
+
+  // Function to get image URL for a purchase
+  const getImageUrl = (purchase: Purchase): string => {
+    // If we have an image URL directly
+    if (purchase.image) {
+      return purchase.image;
+    }
+    
+    // If we have an images array
+    if (purchase.images && purchase.images.length > 0) {
+      const firstImage = purchase.images[0];
+      if (typeof firstImage === 'string') {
+        return firstImage;
+      } else if (firstImage && firstImage.image_path) {
+        return firstImage.image_path;
+      }
+    }
+    
+    // Default placeholder
+    return '/placeholder.jpg';
   };
 
   // Function to get status badge class
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
+  const getStatusBadgeClass = (status: string | undefined) => {
+    if (!status) return '';
+    
+    switch (status.toLowerCase()) {
       case 'completed':
         return styles.statusCompleted;
       case 'processing':
@@ -61,8 +91,10 @@ const Purchases = () => {
   };
 
   // Function to get status in Russian
-  const getStatusText = (status: string) => {
-    switch (status) {
+  const getStatusText = (status: string | undefined) => {
+    if (!status) return 'Завершен';
+    
+    switch (status.toLowerCase()) {
       case 'completed':
         return 'Завершен';
       case 'processing':
@@ -73,46 +105,6 @@ const Purchases = () => {
         return status;
     }
   };
-
-  // Sample data for preview when API is not ready
-  const samplePurchases: Purchase[] = [
-    {
-      id: 1,
-      listing_id: 101,
-      title: 'Удобный диван',
-      price: 15000,
-      image: 'https://via.placeholder.com/150',
-      seller_name: 'Иван Петров',
-      category: 'Диваны и кресла',
-      purchase_date: '2023-07-15T12:30:00Z',
-      status: 'completed'
-    },
-    {
-      id: 2,
-      listing_id: 102,
-      title: 'Кухонный стол',
-      price: 8500,
-      image: 'https://via.placeholder.com/150',
-      seller_name: 'Анна Смирнова',
-      category: 'Столы и стулья',
-      purchase_date: '2023-08-20T15:45:00Z',
-      status: 'processing'
-    },
-    {
-      id: 3,
-      listing_id: 103,
-      title: 'Книжный шкаф',
-      price: 12000,
-      image: 'https://via.placeholder.com/150',
-      seller_name: 'Сергей Иванов',
-      category: 'Шкафы и комоды',
-      purchase_date: '2023-09-05T10:15:00Z',
-      status: 'completed'
-    }
-  ];
-
-  // Use sample data when the API returns empty array
-  const displayPurchases = purchases.length > 0 ? purchases : samplePurchases;
 
   if (isLoading) {
     return (
@@ -135,8 +127,8 @@ const Purchases = () => {
       <div className={styles.contentWrapper}>
         <div className={styles.purchasesHeader}>
           <h1>История покупок</h1>
-          <Link to="/catalog" className={styles.browseButton}>
-            Перейти в каталог
+          <Link to="/profile" className={styles.backButton}>
+            Вернуться в профиль
           </Link>
         </div>
         
@@ -150,7 +142,7 @@ const Purchases = () => {
               Попробовать снова
             </button>
           </div>
-        ) : displayPurchases.length === 0 ? (
+        ) : purchases.length === 0 ? (
           <div className={styles.emptyState}>
             <h2>У вас пока нет покупок</h2>
             <p>После покупки товаров здесь появится история ваших заказов</p>
@@ -160,22 +152,30 @@ const Purchases = () => {
           </div>
         ) : (
           <div className={styles.purchasesList}>
-            {displayPurchases.map((purchase) => (
+            {purchases.map((purchase) => (
               <div key={purchase.id} className={styles.purchaseCard}>
                 <div className={styles.purchaseImage}>
-                  <img src={purchase.image} alt={purchase.title} />
+                  <img src={getImageUrl(purchase)} alt={purchase.title} />
                 </div>
                 <div className={styles.purchaseInfo}>
-                  <Link to={`/product/${purchase.listing_id}`} className={styles.purchaseTitle}>
-                    {purchase.title}
-                  </Link>
-                  <p className={styles.purchasePrice}>{purchase.price.toLocaleString()} ₽</p>
-                  <p className={styles.purchaseCategory}>{purchase.category}</p>
-                  <p className={styles.purchaseSeller}>Продавец: {purchase.seller_name}</p>
+                  {purchase.listing_id ? (
+                    <Link to={`/product/${purchase.listing_id}`} className={styles.purchaseTitle}>
+                      {purchase.title || `Покупка #${purchase.id}`}
+                    </Link>
+                  ) : (
+                    <span className={styles.purchaseTitle}>
+                      {purchase.title || `Покупка #${purchase.id}`}
+                    </span>
+                  )}
+                  <p className={styles.purchasePrice}>{purchase.price?.toLocaleString() || '0'} ₽</p>
+                  {purchase.category && (
+                    <p className={styles.purchaseCategory}>{purchase.category}</p>
+                  )}
+                  <p className={styles.purchaseSeller}>Продавец: {purchase.seller_name || 'Не указан'}</p>
                 </div>
                 <div className={styles.purchaseMeta}>
                   <p className={styles.purchaseDate}>
-                    Дата покупки: {formatDate(purchase.purchase_date)}
+                    Дата покупки: {formatDate(purchase.created_at || purchase.purchase_date)}
                   </p>
                   <div className={styles.purchaseStatus}>
                     <span className={`${styles.statusBadge} ${getStatusBadgeClass(purchase.status)}`}>

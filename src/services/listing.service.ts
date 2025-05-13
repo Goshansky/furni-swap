@@ -477,6 +477,26 @@ class ListingService {
       throw error;
     }
   }
+
+  async getUserListings() {
+    try {
+      console.log("Fetching user's listings");
+      const response = await api.get('/api/listings/my');
+      console.log("Get user listings response:", response.data);
+      
+      if (response.data && response.data.listings) {
+        return {
+          listings: response.data.listings || [],
+          count: response.data.count || response.data.listings.length
+        };
+      }
+      
+      return { listings: [], count: 0 };
+    } catch (error) {
+      console.error("Error getting user listings:", error);
+      throw error;
+    }
+  }
 }
 
 export default new ListingService();

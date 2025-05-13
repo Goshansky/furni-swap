@@ -1,17 +1,17 @@
 import api from './api';
 import listingService from './listing.service';
 
-export interface Purchase {
+export interface Sale {
   id: number;
   listing_id: number;
+  buyer_id: number;
   title: string;
   price: number;
   image?: string;
   images?: Array<string | { id?: number; listing_id?: number; image_path?: string; is_main?: boolean; }>;
-  seller_name: string;
-  seller_id?: number;
+  buyer_name: string;
   category?: string;
-  purchase_date?: string;
+  sale_date?: string;
   created_at?: string;
   updated_at?: string;
   status?: string;
@@ -27,21 +27,21 @@ interface ImageObject {
   path?: string;
 }
 
-class PurchaseService {
-  async getPurchases() {
+class SaleService {
+  async getSales() {
     try {
-      const response = await api.get('/api/purchases');
-      console.log("Get purchases response:", response.data);
+      const response = await api.get('/api/sales');
+      console.log("Get sales response:", response.data);
       
-      const purchases = response.data?.purchases || [];
+      const sales = response.data?.sales || [];
       
-      // Fetch listing details for each purchase to get images
-      const purchasesWithImages = await Promise.all(
-        purchases.map(async (purchase: Purchase) => {
-          if (purchase.listing_id) {
+      // Fetch listing details for each sale to get images
+      const salesWithImages = await Promise.all(
+        sales.map(async (sale: Sale) => {
+          if (sale.listing_id) {
             try {
               // Get listing details to get images
-              const { listing } = await listingService.getListing(purchase.listing_id);
+              const { listing } = await listingService.getListing(sale.listing_id);
               
               if (listing) {
                 // Find main image or use first image
@@ -65,38 +65,38 @@ class PurchaseService {
                 const category = listing.category || '';
                 
                 return {
-                  ...purchase,
-                  title: purchase.title || listing.title || '',
+                  ...sale,
+                  title: sale.title || listing.title || '',
                   images: listing.images,
                   image: mainImage,
                   category
                 };
               }
             } catch (error) {
-              console.error(`Error fetching listing details for purchase ${purchase.id}:`, error);
+              console.error(`Error fetching listing details for sale ${sale.id}:`, error);
             }
           }
           
-          return purchase;
+          return sale;
         })
       );
       
-      return purchasesWithImages;
+      return salesWithImages;
     } catch (error) {
-      console.error("Error fetching purchase history:", error);
+      console.error("Error fetching sales history:", error);
       return [];
     }
   }
 
-  async getPurchaseDetails(id: number) {
+  async getSaleDetails(id: number) {
     try {
-      const response = await api.get(`/api/purchases/${id}`);
-      const purchase = response.data?.purchase;
+      const response = await api.get(`/api/sales/${id}`);
+      const sale = response.data?.sale;
       
-      if (purchase && purchase.listing_id) {
+      if (sale && sale.listing_id) {
         try {
           // Get listing details to get images
-          const { listing } = await listingService.getListing(purchase.listing_id);
+          const { listing } = await listingService.getListing(sale.listing_id);
           
           if (listing) {
             // Find main image or use first image
@@ -120,24 +120,24 @@ class PurchaseService {
             const category = listing.category || '';
             
             return {
-              ...purchase,
-              title: purchase.title || listing.title || '',
+              ...sale,
+              title: sale.title || listing.title || '',
               images: listing.images,
               image: mainImage,
               category
             };
           }
         } catch (error) {
-          console.error(`Error fetching listing details for purchase ${id}:`, error);
+          console.error(`Error fetching listing details for sale ${id}:`, error);
         }
       }
       
-      return purchase;
+      return sale;
     } catch (error) {
-      console.error(`Error fetching purchase details for ID ${id}:`, error);
+      console.error(`Error fetching sale details for ID ${id}:`, error);
       return null;
     }
   }
 }
 
-export default new PurchaseService(); 
+export default new SaleService(); 

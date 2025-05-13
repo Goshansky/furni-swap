@@ -1,20 +1,22 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home/Home";
-import Profile from "./pages/Profile/Profile.tsx";
-import Login from "./auth/Login.tsx";
-import Register from "./auth/Register.tsx";
-import Verify from "./auth/Verify.tsx";
-import Verify2fa from "./auth/Verify2fa.tsx";
-import Catalog from "./pages/Catalog/Catalog.tsx";
-import Product from "./pages/Product/Product.tsx";
-import Chat from "./pages/Chat/Chat.tsx";
-import Favorites from "./pages/Favorites/Favorites.tsx";
-import CreateListing from "./pages/CreateListing/CreateListing.tsx";
-import InspirationDesign from "./pages/InspirationDesign/InspirationDesign.tsx";
-import Purchases from "./pages/Purchases/Purchases.tsx";
-import Terms from "./pages/Terms/Terms.tsx";
-import Privacy from "./pages/Privacy/Privacy.tsx";
-import Contact from "./pages/Contact/Contact.tsx";
+import Profile from "./pages/Profile/Profile";
+import Login from "./auth/Login";
+import Register from "./auth/Register";
+import Verify from "./auth/Verify";
+import Verify2fa from "./auth/Verify2fa";
+import Catalog from "./pages/Catalog/Catalog";
+import Product from "./pages/Product/Product";
+import Chat from "./pages/Chat/Chat";
+import Favorites from "./pages/Favorites/Favorites";
+import CreateListing from "./pages/CreateListing/CreateListing";
+import EditListing from "./pages/EditListing/EditListing";
+import InspirationDesign from "./pages/InspirationDesign/InspirationDesign";
+import Purchases from "./pages/Purchases/Purchases";
+import Sales from "./pages/Sales/Sales";
+import Terms from "./pages/Terms/Terms";
+import Privacy from "./pages/Privacy/Privacy";
+import Contact from "./pages/Contact/Contact";
 
 const App = () => {
     return (
@@ -32,7 +34,9 @@ const App = () => {
                 <Route path="/chats/:id" element={<Chat />} />
                 <Route path="/favorites" element={<Favorites />} />
                 <Route path="/purchases" element={<Purchases />} />
+                <Route path="/sales" element={<Sales />} />
                 <Route path="/create-listing" element={<CreateListing />} />
+                <Route path="/edit-listing/:id" element={<EditListing />} />
                 <Route path="/inspiration" element={<InspirationDesign />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
