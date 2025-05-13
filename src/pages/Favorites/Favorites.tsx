@@ -125,9 +125,12 @@ const Favorites = () => {
                 <ProductCard
                   id={item.id}
                   title={item.title}
+                  description={item.description}
                   price={item.price}
                   location={item.city || item.location || ''}
                   imageUrl={item.mainImage || (item.images && item.images.length > 0 ? item.images[0] : undefined)}
+                  category={item.category}
+                  userName={item.user_name || item.userName}
                 />
                 <button
                   className={styles.removeButton}
