@@ -12,6 +12,9 @@ import Favorites from "./pages/Favorites/Favorites.tsx";
 import CreateListing from "./pages/CreateListing/CreateListing.tsx";
 import InspirationDesign from "./pages/InspirationDesign/InspirationDesign.tsx";
 import Purchases from "./pages/Purchases/Purchases.tsx";
+import Terms from "./pages/Terms/Terms.tsx";
+import Privacy from "./pages/Privacy/Privacy.tsx";
+import Contact from "./pages/Contact/Contact.tsx";
 
 const App = () => {
     return (
@@ -31,6 +34,9 @@ const App = () => {
                 <Route path="/purchases" element={<Purchases />} />
                 <Route path="/create-listing" element={<CreateListing />} />
                 <Route path="/inspiration" element={<InspirationDesign />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/contact" element={<Contact />} />
             </Routes>
         </Router>
     );
