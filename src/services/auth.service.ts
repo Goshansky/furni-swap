@@ -35,6 +35,12 @@ class AuthService {
         'Content-Type': 'application/json'
       }
     });
+    
+    // Log the 2FA code if it exists in the response
+    if (response.data && response.data.code) {
+      console.log('2FA Code from registration:', response.data.code);
+    }
+    
     return response.data;
   }
 
@@ -45,6 +51,12 @@ class AuthService {
 
   async login(data: LoginData) {
     const response = await api.post('/auth/login', data);
+    
+    // Log the 2FA code if it exists in the response
+    if (response.data && response.data.code) {
+      console.log('2FA Code from login:', response.data.code);
+    }
+    
     return response.data;
   }
 

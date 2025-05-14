@@ -376,6 +376,31 @@ const Chat = () => {
     };
   };
   
+  // Format time to Moscow timezone (UTC+3)
+  const formatTimeToMSK = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      
+      // Check if valid date
+      if (isNaN(date.getTime())) {
+        return 'Неизвестное время';
+      }
+      
+      // Convert to Moscow time (UTC+3)
+      const mskTime = new Date(date.getTime());
+      mskTime.setHours(date.getHours() - 3 - new Date().getTimezoneOffset() / 60);
+      
+      return mskTime.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'UTC'
+      }) + ' (МСК)';
+    } catch (err) {
+      console.error('Error formatting time:', err);
+      return 'Неизвестное время';
+    }
+  };
+  
   // Format date for displaying
   const formatMessageDate = (dateString: string) => {
     try {
@@ -524,10 +549,7 @@ const Chat = () => {
                       </div>
                       {lastMessage.time && (
                         <span className={styles.time}>
-                          {new Date(lastMessage.time).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
+                          {formatTimeToMSK(lastMessage.time)}
                         </span>
                       )}
                     </div>
@@ -631,10 +653,7 @@ const Chat = () => {
                               <div className={styles.messageContent}>
                                 <p>{message.text}</p>
                                 <span className={styles.timestamp}>
-                                  {new Date(message.createdAt).toLocaleTimeString([], { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
-                                  })}
+                                  {formatTimeToMSK(message.createdAt)}
                                 </span>
                               </div>
                             </div>
