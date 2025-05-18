@@ -47,7 +47,7 @@ const EditListing = () => {
   });
   
   const [originalImages, setOriginalImages] = useState<ListingImage[]>([]);
-  const [categories, setCategories] = useState<Category[]>([
+  const [categories] = useState<Category[]>([
     { id: 1, name: 'Диваны и кресла' },
     { id: 2, name: 'Столы и стулья' },
     { id: 3, name: 'Шкафы и комоды' },
@@ -325,13 +325,9 @@ const EditListing = () => {
       };
       
       console.log("Updating listing:", listingData);
-      const response = await listingService.updateListing(Number(id), listingData);
-      
+      await listingService.updateListing(Number(id), listingData);
       const listingId = Number(id);
       console.log(`Listing updated successfully, ID: ${listingId}`);
-      
-      // 2. Загружаем новые изображения (если есть)
-      let hasUpdatedImages = false;
       
       // Upload files
       if (formData.images.length > 0) {
@@ -346,7 +342,6 @@ const EditListing = () => {
           });
           
           await Promise.all(uploadPromises);
-          hasUpdatedImages = true;
           console.log("All new images uploaded successfully");
         } catch (uploadError) {
           console.error("Error during image upload:", uploadError);
@@ -367,7 +362,6 @@ const EditListing = () => {
           });
           
           await Promise.all(uploadPromises);
-          hasUpdatedImages = true;
           console.log("All image URLs uploaded successfully");
         } catch (uploadError) {
           console.error("Error during image URL upload:", uploadError);

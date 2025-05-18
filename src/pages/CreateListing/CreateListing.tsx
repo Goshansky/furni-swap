@@ -39,7 +39,7 @@ const CreateListing = () => {
     image_urls: []
   });
   
-  const [categories, setCategories] = useState<Category[]>([
+  const [categories] = useState<Category[]>([
     { id: 1, name: 'Диваны и кресла' },
     { id: 2, name: 'Столы и стулья' },
     { id: 3, name: 'Шкафы и комоды' },

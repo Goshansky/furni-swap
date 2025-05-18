@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
@@ -525,7 +525,7 @@ const Chat = () => {
                 try {
                   // Get other user info, listing info, and last message safely
                   const otherUser = getOtherUserInfo(chat);
-                  const listing = getChatListingInfo(chat);
+                  getChatListingInfo(chat);
                   const lastMessage = getLastMessageInfo(chat);
                   
                   return (

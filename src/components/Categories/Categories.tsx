@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import styles from "./Categories.module.css";
@@ -10,7 +10,7 @@ interface Category {
 
 const Categories = () => {
     const navigate = useNavigate();
-    const [categories, setCategories] = useState<Category[]>([
+    const [categories] = useState<Category[]>([
         { id: 1, name: 'Диваны и кресла' },
         { id: 2, name: 'Столы и стулья' },
         { id: 3, name: 'Шкафы и комоды' },

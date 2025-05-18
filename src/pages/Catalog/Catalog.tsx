@@ -7,7 +7,7 @@ import listingService, { Listing, ListingFilter } from "../../services/listing.s
 import ProductCard from "../../components/ProductCard/ProductCard";
 
 const Catalog = () => {
-    const navigate = useNavigate();
+    useNavigate();
     const location = useLocation();
     
     // Get parameters from URL
@@ -35,7 +35,7 @@ const Catalog = () => {
     const [totalListings, setTotalListings] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
     const [currentPage, setCurrentPage] = useState(initialPage);
-    const [itemsPerPage, setItemsPerPage] = useState(12);
+    const [itemsPerPage] = useState(12);
     
     // Predefined categories
     const [categories, setCategories] = useState<string[]>([
@@ -260,23 +260,7 @@ const Catalog = () => {
         return () => clearTimeout(debounceTimeout);
     }, [selectedCategory, minPrice, maxPrice, searchTerm, currentPage, itemsPerPage, sortOrder, condition, city]);
 
-    // Apply all active filters at once
-    const applyAllFilters = () => {
-        console.log("Applying all active filters");
-        setCurrentPage(1);
-        
-        // Logging the filter state for debugging
-        console.log("Filter state:", {
-            category: selectedCategory,
-            search: searchTerm,
-            minPrice,
-            maxPrice,
-            sortOrder,
-            page: 1
-        });
-    };
-
-    // Clear all filters at once
+// Clear all filters at once
     const clearFilters = () => {
         console.log("Clearing all filters");
         setDraftSearch("");
